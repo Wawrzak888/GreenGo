@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GreenGo 🛒</title>
+    <meta name="theme-color" content="#1e1e1e">
+    <meta name="description" content="Osobisty planer zakupów Mobile First">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+        /* --- RESET & BASE VARIABLES --- */
+        :root {
+            --red: #ff6b6b;
+            --green: #2ecc71;
+            --gray: #a0a0a0;
+            
+            /* DARK MODE PALETTE */
+            --bg-light: #121212;
+            --bg-white: #1e1e1e;
+            --text-dark: #ecf0f1;
+            --border-color: #333333;
+            --input-bg: #2c2c2c;
+            
+            --shadow: 0 4px 6px rgba(0,0,0,0.3);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- LAYOUT STRUCTURE --- */
+        header {
+            background: var(--bg-white);
+            padding: 15px 20px;
+            box-shadow: var(--shadow);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: auto;
+            min-height: 80px;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--green);
+            margin-bottom: 5px;
+            letter-spacing: -0.5px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .app-slogan {
+            font-size: 0.75rem;
+            color: var(--text-dark);
+            opacity: 0.6;
+            letter-spacing: 6px;
+            margin-bottom: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            text-align: center;
+            margin-right: -6px;
+        }
+
+        .view-title {
+            font-size: 0.75rem;
+            color: var(--gray);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.8;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 80px;
+            position: relative;
+        }
+
+        footer {
+            background: var(--bg-white);
+            border-top: 1px solid var(--border-color);
+            height: 70px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 20;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* --- COMPONENTS: NAVIGATION --- */
+        .nav-btn {
+            background: none;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--gray);
+            padding: 10px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nav-btn.active {
+            color: var(--green);
+            font-weight: bold;
+        }
+
+        .nav-icon {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+
+        /* --- COMPONENTS: DAY VIEW --- */
+        .date-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: var(--bg-white);
+            padding: 10px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            color: var(--text-dark);
+        }
+
+        .date-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            padding: 5px 15px;
+            cursor: pointer;
+            color: var(--text-dark);
+        }
+
+        .current-date-label {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #itemInput {
+            flex: 1;
+            padding: 12px;
+            background-color: var(--input-bg);
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #itemInput:focus {
+            border-color: var(--green);
+        }
+
+        #addBtn {
+            background: var(--green);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: var(--radius);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        /* --- LIST ITEMS --- */
+        .shopping-list {
+            list-style: none;
+        }
+
+        .item-row {
+            background: var(--bg-white);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, opacity 0.2s;
+            animation: slideIn 0.3s ease-out;
+            border: 1px solid transparent;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .checkbox {
+            font-size: 1.2rem;
+            min-width: 24px;
+            filter: grayscale(0.2);
+        }
+
+        .item-text {
+            font-size: 1rem;
+            transition: color 0.3s, font-weight 0.3s;
+            word-break: break-word;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            padding: 5px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+            filter: grayscale(100%) brightness(150%);
+        }
+
+        .delete-btn:hover {
+            opacity: 1;
+        }
+
+        /* --- STATUS STYLES --- */
+        .status-todo .item-text {
+            color: var(--red);
+            font-weight: 700;
+        }
+        .status-todo .checkbox::after {
+            content: "⬜"; 
+        }
+
+        .status-done .item-text {
+            color: var(--green);
+            font-weight: 400;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        .status-done .checkbox::after {
+            content: "✅";
+        }
+
+        /* --- WEEK & MONTH VIEWS --- */
+        .grid-container {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .week-grid {
+            grid-template-columns: 1fr; 
+        }
+
+        .month-grid {
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--bg-white);
+            padding: 10px;
+            border-radius: var(--radius);
+            gap: 6px; 
+        }
+
+        .day-header {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--gray);
+            padding-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .tile {
+            background: var(--bg-white);
+            border-radius: var(--radius);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            position: relative;
+            transition: transform 0.1s;
+            color: var(--text-dark);
+        }
+        
+        .tile:active {
+            transform: scale(0.98);
+        }
+
+        /* Month View Cell */
+        .calendar-cell {
+            aspect-ratio: 1/1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 1.8rem; 
+            font-weight: 700;  
+            position: relative;
+            border: 1px solid var(--border-color);
+            background-color: transparent;
+            transition: background-color 0.2s;
+        }
+
+        .calendar-cell.today {
+            border: 2px solid var(--text-dark);
+            font-weight: 900; 
+            z-index: 2; 
+        }
+        
+        /* NEW: Status Badge Icon in Month View - UPDATED SIZE */
+        .month-status-icon {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            font-size: 1.4rem; /* ZNACZNIE POWIĘKSZONA IKONA (było 0.9rem) */
+            line-height: 1;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); /* Cień dla kontrastu */
+        }
+
+        /* --- NEW COLOR LOGIC STYLES --- */
+        
+        /* Week View: Date Text Color */
+        .week-date-num.status-red {
+            color: var(--red);
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.2);
+        }
+        .week-date-num.status-green {
+            color: var(--green);
+        }
+        
+        /* NEW: Flex wrapper for week date and icon */
+        .week-status-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Odstęp między ikoną a datą */
+        }
+
+        /* Month View: Full Background Status */
+        .calendar-cell.status-red {
+            background-color: var(--red);
+            color: #fff; 
+            border-color: var(--red);
+        }
+        
+        .calendar-cell.status-green {
+            background-color: var(--green);
+            color: #1e1e1e; 
+            border-color: var(--green);
+        }
+
+        /* Adjust today border when colored */
+        .calendar-cell.today.status-red, 
+        .calendar-cell.today.status-green {
+            border: 2px solid #fff;
+        }
+
+        /* Specific visual overrides for Week View */
+        .week-tile-content {
+            display: flex;
+            flex-direction: column;
+            width: 100%; 
+        }
+        
+        .week-row-layout {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .week-day-name { font-size: 0.9rem; color: var(--gray); }
+        .week-date-num { 
+            font-size: 1.5rem; 
+            font-weight: 700; 
+            transition: color 0.2s; 
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            color: var(--gray);
+            margin-top: 50px;
+        }
+
+        /* Month Nav */
+        .month-nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            color: var(--text-dark);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>GreenGo 🛒</h1>
+        <div class="app-slogan">PLANUJ SWOJE ZAKUPY</div>
+        <div class="view-title" id="viewTitle">Widok Dnia</div>
+    </header>
+
+    <main id="appContainer">
+        <!-- Content injected via JS -->
+    </main>
+
+    <footer>
+        <button class="nav-btn active" onclick="app.changeView('day')" id="btnDay">
+            <span class="nav-icon">📝</span>
+            <span>Dzień</span>
+        </button>
+        <button class="nav-btn" onclick="app.changeView('week')" id="btnWeek">
+            <span class="nav-icon">📅</span>
+            <span>Tydzień</span>
+        </button>
+        <button class="nav-btn" onclick="app.changeView('month')" id="btnMonth">
+            <span class="nav-icon">📆</span>
+            <span>Miesiąc</span>
+        </button>
+    </footer>
+
+    <script>
+        /**
+         * GreenGo Application Logic
+         * Architecture: Simple State Management + LocalStorage Persistence
+         */
+
+        const Utils = {
+            formatDateKey: (date) => {
+                const d = new Date(date);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            },
+            
+            getReadableDate: (date) => {
+                const options = { weekday: 'long', day: 'numeric', month: 'numeric' };
+                return date.toLocaleDateString('pl-PL', options);
+            },
+
+            getMonthName: (date) => {
+                return date.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+            },
+            
+            // returns: 'gray' (empty), 'red' (todo items exist), 'green' (all done)
+            getDayStatus: (dateStr) => {
+                const data = Storage.get(dateStr);
+                if (!data || data.length === 0) return 'gray';
+                
+                const hasPending = data.some(item => !item.done);
+                if (hasPending) return 'red';
+                
+                return 'green'; // List exists and all checked
+            }
+        };
+
+        const Storage = {
+            get: (key) => {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            },
+            set: (key, data) => {
+                localStorage.setItem(key, JSON.stringify(data));
+            }
+        };
+
+        class GreenGoApp {
+            constructor() {
+                this.currentDate = new Date();
+                this.currentView = 'day'; // 'day', 'week', 'month'
+                this.container = document.getElementById('appContainer');
+                this.viewTitle = document.getElementById('viewTitle');
+                
+                // Initial render
+                this.render();
+            }
+
+            changeView(viewName) {
+                this.currentView = viewName;
+                
+                // Update footer active state
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+                const btnMap = { 'day': 'btnDay', 'week': 'btnWeek', 'month': 'btnMonth' };
+                document.getElementById(btnMap[viewName]).classList.add('active');
+
+                this.render();
+            }
+
+            // --- VIEW ROUTER ---
+            render() {
+                this.container.innerHTML = '';
+                
+                switch(this.currentView) {
+                    case 'day':
+                        this.viewTitle.textContent = "Widok Dnia";
+                        this.renderDayView();
+                        break;
+                    case 'week':
+                        this.viewTitle.textContent = "Widok Tygodnia";
+                        this.renderWeekView();
+                        break;
+                    case 'month':
+                        this.viewTitle.textContent = "Widok Miesiąca";
+                        this.renderMonthView();
+                        break;
+                }
+            }
+
+            // --- DAY VIEW LOGIC ---
+            renderDayView() {
+                const dateKey = Utils.formatDateKey(this.currentDate);
+                let items = Storage.get(dateKey);
+
+                // SORT LOGIC: Red (false) on top, Green (true) on bottom
+                items.sort((a, b) => a.done - b.done);
+
+                // Header Navigation
+                const nav = document.createElement('div');
+                nav.className = 'date-nav';
+                nav.innerHTML = `
+                    <button class="date-btn" id="prevDay">[&lt;]</button>
+                    <div class="current-date-label">${Utils.getReadableDate(this.currentDate)}</div>
+                    <button class="date-btn" id="nextDay">[&gt;]</button>
+                `;
+                
+                // Buttons handling
+                nav.querySelector('#prevDay').onclick = () => this.shiftDate(-1);
+                nav.querySelector('#nextDay').onclick = () => this.shiftDate(1);
+                
+                // Today Button (Clicking date resets to today)
+                nav.querySelector('.current-date-label').onclick = () => {
+                    this.currentDate = new Date();
+                    this.render();
+                };
+
+                // Input Area
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'input-group';
+                inputGroup.innerHTML = `
+                    <input type="text" id="itemInput" placeholder="Wpisz produkt..." autocomplete="off">
+                    <button id="addBtn">➕</button>
+                `;
+
+                // List Area
+                const list = document.createElement('ul');
+                list.className = 'shopping-list';
+
+                if (items.length === 0) {
+                    list.innerHTML = '<div class="empty-state">Brak zakupów na ten dzień.<br>Dodaj coś! 📝</div>';
+                } else {
+                    items.forEach((item, index) => {
+                        const li = document.createElement('li');
+                        li.className = `item-row ${item.done ? 'status-done' : 'status-todo'}`;
+                        
+                        li.innerHTML = `
+                            <div class="item-left" onclick="app.toggleItem('${dateKey}', ${item.id})">
+                                <span class="checkbox"></span>
+                                <span class="item-text">${item.text}</span>
+                            </div>
+                            <button class="delete-btn" onclick="app.deleteItem('${dateKey}', ${item.id})">🗑️</button>
+                        `;
+                        
+                        // Actions
+                        const textSpan = li.querySelector('.item-text');
+                        textSpan.onclick = (e) => {
+                            e.stopPropagation();
+                            const newText = prompt("Edytuj nazwę produktu:", item.text);
+                            if (newText !== null && newText.trim() !== "") {
+                                app.editItem(dateKey, item.id, newText.trim());
+                            }
+                        };
+
+                        list.appendChild(li);
+                    });
+                }
+
+                this.container.appendChild(nav);
+                this.container.appendChild(inputGroup);
+                this.container.appendChild(list);
+
+                // Bind Input Events
+                const input = document.getElementById('itemInput');
+                const addBtn = document.getElementById('addBtn');
+
+                const handleAdd = () => {
+                    const text = input.value.trim();
+                    if (!text) return;
+                    this.addItem(dateKey, text);
+                };
+
+                addBtn.onclick = handleAdd;
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') handleAdd();
+                });
+            }
+
+            // --- WEEK VIEW LOGIC ---
+            renderWeekView() {
+                const grid = document.createElement('div');
+                grid.className = 'grid-container week-grid';
+
+                const curr = new Date(this.currentDate);
+                const day = curr.getDay();
+                const diff = curr.getDate() - day + (day == 0 ? -6 : 1); 
+                const monday = new Date(curr.setDate(diff));
+
+                for (let i = 0; i < 7; i++) {
+                    const loopDate = new Date(monday);
+                    loopDate.setDate(monday.getDate() + i);
+                    
+                    const dateStr = Utils.formatDateKey(loopDate);
+                    const status = Utils.getDayStatus(dateStr);
+                    const dayName = loopDate.toLocaleDateString('pl-PL', { weekday: 'long' });
+                    const dateNum = loopDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'numeric' });
+
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.onclick = () => this.goToDate(loopDate);
+
+                    let statusClass = '';
+                    let icon = '';
+
+                    if (status === 'red') {
+                        statusClass = 'status-red';
+                        icon = '🛒';
+                    }
+                    if (status === 'green') {
+                        statusClass = 'status-green';
+                        icon = '✅';
+                    }
+
+                    tile.innerHTML = `
+                        <div class="week-row-layout">
+                            <span class="week-day-name">${dayName}</span>
+                            <div class="week-status-wrapper">
+                                ${icon ? `<span style="font-size: 1.2rem">${icon}</span>` : ''} 
+                                <span class="week-date-num ${statusClass}">${dateNum}</span>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(tile);
+                }
+                
+                this.container.appendChild(grid);
+            }
+
+            // --- MONTH VIEW LOGIC ---
+            renderMonthView() {
+                const year = this.currentDate.getFullYear();
+                const month = this.currentDate.getMonth();
+
+                const nav = document.createElement('div');
+                nav.className = 'month-nav-header';
+                nav.innerHTML = `
+                    <button class="date-btn" onclick="app.shiftMonth(-1)">[&lt;]</button>
+                    <span style="font-weight:bold; font-size:1.1rem;">${Utils.getMonthName(this.currentDate)}</span>
+                    <button class="date-btn" onclick="app.shiftMonth(1)">[&gt;]</button>
+                `;
+                this.container.appendChild(nav);
+
+                const grid = document.createElement('div');
+                grid.className = 'grid-container month-grid';
+
+                ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'].forEach(d => {
+                    const h = document.createElement('div');
+                    h.className = 'day-header';
+                    h.textContent = d;
+                    grid.appendChild(h);
+                });
+
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                
+                let startDayIndex = firstDay.getDay(); 
+                if (startDayIndex === 0) startDayIndex = 7; 
+                
+                for(let i=1; i<startDayIndex; i++) {
+                    grid.appendChild(document.createElement('div'));
+                }
+
+                const todayStr = Utils.formatDateKey(new Date());
+
+                for (let i = 1; i <= lastDay.getDate(); i++) {
+                    const currentDayDate = new Date(year, month, i);
+                    const dateStr = Utils.formatDateKey(currentDayDate);
+                    const status = Utils.getDayStatus(dateStr);
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-cell';
+                    
+                    if (dateStr === todayStr) cell.classList.add('today');
+                    
+                    let icon = '';
+
+                    if (status === 'red') {
+                        cell.classList.add('status-red');
+                        icon = '🛒';
+                    }
+                    if (status === 'green') {
+                        cell.classList.add('status-green');
+                        icon = '✅';
+                    }
+                    
+                    cell.onclick = () => this.goToDate(currentDayDate);
+                    
+                    // Add icon span if icon exists
+                    const iconHtml = icon ? `<span class="month-status-icon">${icon}</span>` : '';
+
+                    cell.innerHTML = `<span>${i}</span>${iconHtml}`;
+                    grid.appendChild(cell);
+                }
+
+                this.container.appendChild(grid);
+            }
+
+            // --- ACTIONS & HELPERS ---
+
+            addItem(dateKey, text) {
+                const items = Storage.get(dateKey);
+                items.push({
+                    id: Date.now(),
+                    text: text,
+                    done: false
+                });
+                Storage.set(dateKey, items);
+                this.render(); // Re-render current view
+            }
+
+            toggleItem(dateKey, id) {
+                const items = Storage.get(dateKey);
+                const item = items.find(i => i.id === id);
+                if (item) {
+                    item.done = !item.done;
+                    Storage.set(dateKey, items);
+                    this.render();
+                }
+            }
+
+            deleteItem(dateKey, id) {
+                if(!confirm("Usunąć produkt?")) return;
+                let items = Storage.get(dateKey);
+                items = items.filter(i => i.id !== id);
+                Storage.set(dateKey, items);
+                this.render();
+            }
+
+            editItem(dateKey, id, newText) {
+                const items = Storage.get(dateKey);
+                const item = items.find(i => i.id === id);
+                if (item) {
+                    item.text = newText;
+                    Storage.set(dateKey, items);
+                    this.render();
+                }
+            }
+
+            shiftDate(days) {
+                this.currentDate.setDate(this.currentDate.getDate() + days);
+                this.render();
+            }
+
+            shiftMonth(months) {
+                this.currentDate.setMonth(this.currentDate.getMonth() + months);
+                this.render();
+            }
+
+            goToDate(date) {
+                this.currentDate = date;
+                this.changeView('day');
+            }
+        }
+
+        // Initialize App
+        const app = new GreenGoApp();
+
+    </script>
+</body>
+</html>
