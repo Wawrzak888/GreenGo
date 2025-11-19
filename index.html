@@ -15,14 +15,14 @@
     <meta name="apple-mobile-web-app-title" content="GreenGo">
 
     <!-- KONFIGURACJA PWA (WYMUSZENIE PEŁNEGO EKRANU DLA ANDROID - LEGACY) -->
-    <!-- To jest kluczowa linijka, którą dodałem dla Ciebie -->
     <meta name="mobile-web-app-capable" content="yes">
 
-    <!-- IKONA APLIKACJI (Wózek) -->
+    <!-- IKONA APLIKACJI (Wózek - widoczna w karcie przeglądarki) -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
 
-    <!-- KONFIGURACJA PWA (MANIFEST ZASZYTY W KODZIE) -->
-    <link rel="manifest" href='data:application/manifest+json,{"name":"GreenGo 🛒","short_name":"GreenGo","start_url":".","display":"standalone","background_color":"#1e1e1e","theme_color":"#1e1e1e","icons":[{"src":"data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+    <!-- KONFIGURACJA PWA (Link do pliku manifest.json na GitHubie) -->
+    <!-- To jest kluczowa linijka łącząca z plikiem JSON -->
+    <link rel="manifest" href="manifest.json">
 
     <style>
         /* --- RESET & BASE VARIABLES --- */
@@ -117,7 +117,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 20px;
-            /* ZWIĘKSZONY PADDING - NAPRAWA SKROLLOWANIA */
+            /* ZWIĘKSZONY PADDING - NAPRAWA SKROLLOWANIA (żeby stopka nie zasłaniała) */
             padding-bottom: 160px; 
             position: relative;
             /* Płynne przewijanie na iOS */
