@@ -4,10 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GreenGo 🛒</title>
+    
+    <!-- KOLORYSTYKA SYSTEMOWA -->
     <meta name="theme-color" content="#1e1e1e">
     <meta name="description" content="Osobisty planer zakupów Mobile First">
+    
+    <!-- KONFIGURACJA PWA (PEŁNY EKRAN DLA IOS) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GreenGo">
+
+    <!-- IKONA APLIKACJI (Wózek) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+
+    <!-- KONFIGURACJA PWA (PEŁNY EKRAN DLA ANDROID/CHROME) - ZASZYTY MANIFEST -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"GreenGo 🛒","short_name":"GreenGo","start_url":".","display":"standalone","background_color":"#1e1e1e","theme_color":"#1e1e1e","icons":[{"src":"data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
 
     <style>
         /* --- RESET & BASE VARIABLES --- */
@@ -42,6 +53,8 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            /* Zapobiega "gumowaniu" przewijania na iOS poza aplikacją */
+            overscroll-behavior-y: none; 
         }
 
         /* --- LAYOUT STRUCTURE --- */
@@ -58,6 +71,7 @@
             min-height: 80px;
             flex-shrink: 0;
             border-bottom: 1px solid var(--border-color);
+            padding-top: max(15px, env(safe-area-inset-top)); /* Obsługa notcha na iPhone */
         }
 
         h1 {
@@ -102,6 +116,8 @@
             /* ZWIĘKSZONY PADDING - NAPRAWA SKROLLOWANIA */
             padding-bottom: 160px; 
             position: relative;
+            /* Płynne przewijanie na iOS */
+            -webkit-overflow-scrolling: touch; 
         }
 
         footer {
