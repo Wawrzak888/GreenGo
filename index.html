@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GreenGo 🛒</title>
     
-    <!-- KOLORYSTYKA SYSTEMOWA -->
-    <meta name="theme-color" content="#1e1e1e">
+    <!-- KOLORYSTYKA SYSTEMOWA (Domyślnie ciemna, zmieniana przez JS) -->
+    <meta name="theme-color" content="#1e1e1e" id="metaThemeColor">
     <meta name="description" content="Osobisty planer zakupów Mobile First">
     
     <!-- KONFIGURACJA PWA (PEŁNY EKRAN DLA IOS) -->
@@ -17,29 +17,44 @@
     <!-- KONFIGURACJA PWA (WYMUSZENIE PEŁNEGO EKRANU DLA ANDROID - LEGACY) -->
     <meta name="mobile-web-app-capable" content="yes">
 
-    <!-- IKONA APLIKACJI (Wózek - widoczna w karcie przeglądarki) -->
+    <!-- IKONA APLIKACJI -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
 
-    <!-- KONFIGURACJA PWA (Link do pliku manifest.json na GitHubie) -->
-    <!-- To jest kluczowa linijka łącząca z plikiem JSON -->
+    <!-- LINK DO MANIFESTU (opcjonalny) -->
     <link rel="manifest" href="manifest.json">
 
     <style>
-        /* --- RESET & BASE VARIABLES --- */
+        /* --- DEFINICJA ZMIENNYCH (MOTYW CIEMNY - DOMYŚLNY) --- */
         :root {
             --red: #ff6b6b;
             --green: #2ecc71;
             --gray: #a0a0a0;
             
-            /* DARK MODE PALETTE */
-            --bg-light: #121212;
-            --bg-white: #1e1e1e;
-            --text-dark: #ecf0f1;
+            /* DARK MODE PALETTE (DEFAULT) */
+            --bg-body: #121212;
+            --bg-card: #1e1e1e;
+            --text-main: #ecf0f1;
+            --text-muted: #a0a0a0;
             --border-color: #333333;
             --input-bg: #2c2c2c;
-            
             --shadow: 0 4px 6px rgba(0,0,0,0.3);
             --radius: 12px;
+            
+            /* Przycisk motywu */
+            --theme-btn-bg: rgba(255,255,255,0.1);
+        }
+
+        /* --- MOTYW JASNY (Klasa dodawana do body) --- */
+        body.light-mode {
+            --bg-body: #f0f2f5;      /* Jasne szare tło */
+            --bg-card: #ffffff;      /* Białe karty */
+            --text-main: #1a1a1a;    /* Prawie czarny tekst */
+            --text-muted: #666666;   /* Ciemniejszy szary dla opisów */
+            --border-color: #e0e0e0; /* Jasne ramki */
+            --input-bg: #f1f3f4;     /* Jasne tło inputów */
+            --shadow: 0 4px 10px rgba(0,0,0,0.1); /* Delikatniejszy cień */
+            
+            --theme-btn-bg: rgba(0,0,0,0.05);
         }
 
         * {
@@ -51,19 +66,19 @@
         }
 
         body {
-            background-color: var(--bg-light);
-            color: var(--text-dark);
+            background-color: var(--bg-body);
+            color: var(--text-main);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            /* Zapobiega "gumowaniu" przewijania na iOS poza aplikacją */
-            overscroll-behavior-y: none; 
+            overscroll-behavior-y: none;
+            transition: background-color 0.3s, color 0.3s; /* Płynne przejście motywu */
         }
 
-        /* --- LAYOUT STRUCTURE --- */
+        /* --- HEADER --- */
         header {
-            background: var(--bg-white);
+            background: var(--bg-card);
             padding: 15px 20px;
             box-shadow: var(--shadow);
             z-index: 10;
@@ -71,11 +86,33 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: auto;
             min-height: 80px;
             flex-shrink: 0;
             border-bottom: 1px solid var(--border-color);
-            padding-top: max(15px, env(safe-area-inset-top)); /* Obsługa notcha na iPhone */
+            padding-top: max(15px, env(safe-area-inset-top));
+            position: relative; /* Dla pozycjonowania przycisku motywu */
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        /* Przycisk zmiany motywu */
+        .theme-toggle-btn {
+            position: absolute;
+            top: max(15px, env(safe-area-inset-top));
+            right: 15px;
+            background: var(--theme-btn-bg);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+        .theme-toggle-btn:active {
+            transform: scale(0.9);
         }
 
         h1 {
@@ -90,7 +127,7 @@
 
         .app-slogan {
             font-size: 0.75rem;
-            color: var(--text-dark);
+            color: var(--text-main);
             opacity: 0.6;
             letter-spacing: 6px;
             margin-bottom: 12px;
@@ -102,7 +139,7 @@
 
         .view-title {
             font-size: 0.75rem;
-            color: var(--gray);
+            color: var(--text-muted);
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1.5px;
@@ -111,21 +148,21 @@
             padding-top: 10px;
             width: 100%;
             text-align: center;
+            transition: border-color 0.3s;
         }
 
         main {
             flex: 1;
             overflow-y: auto;
             padding: 20px;
-            /* ZWIĘKSZONY PADDING - NAPRAWA SKROLLOWANIA (żeby stopka nie zasłaniała) */
             padding-bottom: 160px; 
             position: relative;
-            /* Płynne przewijanie na iOS */
             -webkit-overflow-scrolling: touch; 
         }
 
+        /* --- FOOTER --- */
         footer {
-            background: var(--bg-white);
+            background: var(--bg-card);
             border-top: 1px solid var(--border-color);
             position: fixed;
             bottom: 0;
@@ -137,6 +174,7 @@
             z-index: 20;
             padding-bottom: env(safe-area-inset-bottom);
             padding-top: 5px;
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .footer-nav-container {
@@ -148,17 +186,16 @@
 
         .footer-credits {
             font-size: 0.55rem; 
-            color: var(--gray);
+            color: var(--text-muted);
             margin-top: 4px;
             margin-bottom: 8px; 
             text-align: center;
-            opacity: 0.4; 
+            opacity: 0.5; 
             padding: 0 15px;
             line-height: 1.2;
             max-width: 90%;
         }
 
-        /* --- COMPONENTS: NAVIGATION --- */
         .nav-btn {
             background: none;
             border: none;
@@ -166,7 +203,7 @@
             flex-direction: column;
             align-items: center;
             font-size: 0.75rem;
-            color: var(--gray);
+            color: var(--text-muted);
             padding: 8px 10px; 
             cursor: pointer;
             transition: color 0.2s;
@@ -182,17 +219,18 @@
             margin-bottom: 4px;
         }
 
-        /* --- COMPONENTS: DAY VIEW --- */
+        /* --- COMMON UI ELEMENTS --- */
         .date-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            background: var(--bg-white);
+            background: var(--bg-card);
             padding: 10px;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
-            color: var(--text-dark);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .date-btn {
@@ -201,7 +239,7 @@
             font-size: 1.2rem;
             padding: 5px 15px;
             cursor: pointer;
-            color: var(--text-dark);
+            color: var(--text-main);
         }
 
         .current-date-label {
@@ -219,12 +257,12 @@
             flex: 1;
             padding: 12px;
             background-color: var(--input-bg);
-            color: var(--text-dark);
+            color: var(--text-main);
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
             font-size: 1rem;
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background-color 0.3s, color 0.3s;
         }
 
         #itemInput:focus {
@@ -247,7 +285,7 @@
         }
 
         .item-row {
-            background: var(--bg-white);
+            background: var(--bg-card);
             margin-bottom: 10px;
             padding: 15px;
             border-radius: var(--radius);
@@ -255,7 +293,7 @@
             align-items: center;
             justify-content: space-between;
             box-shadow: var(--shadow);
-            transition: transform 0.2s, opacity 0.2s;
+            transition: transform 0.2s, opacity 0.2s, background-color 0.3s;
             animation: slideIn 0.3s ease-out;
             border: 1px solid transparent;
         }
@@ -283,6 +321,7 @@
             font-size: 1rem;
             transition: color 0.3s, font-weight 0.3s;
             word-break: break-word;
+            color: var(--text-main);
         }
 
         .delete-btn {
@@ -293,6 +332,12 @@
             cursor: pointer;
             opacity: 0.5;
             transition: opacity 0.2s;
+            /* W light mode kosz byłby za jasny jeśli użyjemy filtra, więc resetujemy filtr dla light mode */
+            filter: grayscale(100%); 
+        }
+        
+        /* W ciemnym trybie chcemy jaśniejszy kosz */
+        body:not(.light-mode) .delete-btn {
             filter: grayscale(100%) brightness(150%);
         }
 
@@ -302,11 +347,16 @@
 
         /* --- STATUS STYLES --- */
         .status-todo .item-text {
-            color: var(--red);
+            color: var(--red); /* Red overrides text-main for emphasis */
             font-weight: 700;
         }
         .status-todo .checkbox::after {
             content: "⬜"; 
+        }
+        /* Specyficzne nadpisanie dla light mode dla pustego checkboxa, żeby nie był za jasny */
+        body.light-mode .status-todo .checkbox::after {
+            content: "⬜";
+            filter: invert(1) opacity(0.5); /* Odwrócenie kolorów dla lepszej widoczności na białym */
         }
 
         .status-done .item-text {
@@ -319,34 +369,33 @@
             content: "✅";
         }
 
-        /* --- WEEK & MONTH VIEWS --- */
+        /* --- GRID VIEWS --- */
         .grid-container {
             display: grid;
             gap: 10px;
         }
         
-        .week-grid {
-            grid-template-columns: 1fr; 
-        }
-
+        .week-grid { grid-template-columns: 1fr; }
+        
         .month-grid {
             grid-template-columns: repeat(7, 1fr);
-            background: var(--bg-white);
+            background: var(--bg-card);
             padding: 10px;
             border-radius: var(--radius);
             gap: 6px; 
+            transition: background-color 0.3s;
         }
 
         .day-header {
             text-align: center;
             font-size: 0.8rem;
-            color: var(--gray);
+            color: var(--text-muted);
             padding-bottom: 5px;
             font-weight: bold;
         }
 
         .tile {
-            background: var(--bg-white);
+            background: var(--bg-card);
             border-radius: var(--radius);
             padding: 15px;
             display: flex;
@@ -354,14 +403,11 @@
             align-items: center;
             cursor: pointer;
             box-shadow: var(--shadow);
-            position: relative;
-            transition: transform 0.1s;
-            color: var(--text-dark);
+            transition: transform 0.1s, background-color 0.3s;
+            color: var(--text-main);
         }
         
-        .tile:active {
-            transform: scale(0.98);
-        }
+        .tile:active { transform: scale(0.98); }
 
         /* Month View Cell */
         .calendar-cell {
@@ -376,16 +422,16 @@
             position: relative;
             border: 1px solid var(--border-color);
             background-color: transparent;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, border-color 0.3s;
+            color: var(--text-main);
         }
 
         .calendar-cell.today {
-            border: 2px solid var(--text-dark);
+            border: 2px solid var(--text-main);
             font-weight: 900; 
             z-index: 2; 
         }
         
-        /* Status Badge Icon in Month View */
         .month-status-icon {
             position: absolute;
             top: 3px;
@@ -395,9 +441,7 @@
             filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
         }
 
-        /* --- NEW COLOR LOGIC STYLES --- */
-        
-        /* Week View: Date Text Color */
+        /* --- COLORS & MODIFIERS --- */
         .week-date-num.status-red {
             color: var(--red);
             text-shadow: 0 0 10px rgba(255, 107, 107, 0.2);
@@ -406,73 +450,59 @@
             color: var(--green);
         }
         
-        /* Flex wrapper for week date and icon */
         .week-status-wrapper {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-
-        /* Month View: Full Background Status */
-        .calendar-cell.status-red {
-            background-color: var(--red);
-            color: #fff; 
-            border-color: var(--red);
-        }
-        
-        .calendar-cell.status-green {
-            background-color: var(--green);
-            color: #1e1e1e; 
-            border-color: var(--green);
-        }
-
-        /* Adjust today border when colored */
-        .calendar-cell.today.status-red, 
-        .calendar-cell.today.status-green {
-            border: 2px solid #fff;
-        }
-
-        /* Specific visual overrides for Week View */
-        .week-tile-content {
-            display: flex;
-            flex-direction: column;
-            width: 100%; 
-        }
-        
         .week-row-layout {
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
         }
+        .week-day-name { font-size: 0.9rem; color: var(--text-muted); }
+        .week-date-num { font-size: 1.5rem; font-weight: 700; }
 
-        .week-day-name { font-size: 0.9rem; color: var(--gray); }
-        .week-date-num { 
-            font-size: 1.5rem; 
-            font-weight: 700; 
-            transition: color 0.2s; 
+        /* Calendar Colored Status */
+        .calendar-cell.status-red {
+            background-color: var(--red);
+            color: #fff; 
+            border-color: var(--red);
+        }
+        .calendar-cell.status-green {
+            background-color: var(--green);
+            color: #1e1e1e; /* Ciemny tekst na zielonym */
+            border-color: var(--green);
+        }
+        .calendar-cell.today.status-red, 
+        .calendar-cell.today.status-green {
+            border: 2px solid #fff;
         }
 
-        /* Empty State */
         .empty-state {
             text-align: center;
-            color: var(--gray);
+            color: var(--text-muted);
             margin-top: 50px;
         }
 
-        /* Month Nav */
         .month-nav-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-            color: var(--text-dark);
+            color: var(--text-main);
         }
     </style>
 </head>
 <body>
 
     <header>
+        <!-- Przycisk zmiany motywu -->
+        <button id="themeToggle" class="theme-toggle-btn" aria-label="Zmień motyw">
+            ☀️
+        </button>
+
         <h1>GreenGo 🛒</h1>
         <div class="app-slogan">PLANUJ SWOJE ZAKUPY</div>
         <div class="view-title" id="viewTitle">Widok Dnia</div>
@@ -508,6 +538,48 @@
          * Architecture: Simple State Management + LocalStorage Persistence
          */
 
+        // --- THEME MANAGER ---
+        const ThemeManager = {
+            init: function() {
+                const savedTheme = localStorage.getItem('greengo_theme');
+                const btn = document.getElementById('themeToggle');
+                
+                // Domyślnie ciemny (null), jeśli zapisano 'light', włączamy jasny
+                if (savedTheme === 'light') {
+                    document.body.classList.add('light-mode');
+                    btn.textContent = '🌙';
+                    this.updateMetaColor('#ffffff');
+                } else {
+                    btn.textContent = '☀️';
+                    this.updateMetaColor('#1e1e1e');
+                }
+
+                // Listener na przycisk
+                btn.onclick = () => this.toggle();
+            },
+
+            toggle: function() {
+                const body = document.body;
+                const btn = document.getElementById('themeToggle');
+                
+                body.classList.toggle('light-mode');
+                
+                if (body.classList.contains('light-mode')) {
+                    localStorage.setItem('greengo_theme', 'light');
+                    btn.textContent = '🌙'; // Ikona księżyca żeby wrócić do ciemnego
+                    this.updateMetaColor('#ffffff');
+                } else {
+                    localStorage.setItem('greengo_theme', 'dark');
+                    btn.textContent = '☀️'; // Ikona słońca żeby włączyć jasny
+                    this.updateMetaColor('#1e1e1e');
+                }
+            },
+
+            updateMetaColor: function(color) {
+                document.getElementById('metaThemeColor').setAttribute('content', color);
+            }
+        };
+
         const Utils = {
             formatDateKey: (date) => {
                 const d = new Date(date);
@@ -526,15 +598,12 @@
                 return date.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
             },
             
-            // returns: 'gray' (empty), 'red' (todo items exist), 'green' (all done)
             getDayStatus: (dateStr) => {
                 const data = Storage.get(dateStr);
                 if (!data || data.length === 0) return 'gray';
-                
                 const hasPending = data.some(item => !item.done);
                 if (hasPending) return 'red';
-                
-                return 'green'; // List exists and all checked
+                return 'green'; 
             }
         };
 
@@ -551,29 +620,27 @@
         class GreenGoApp {
             constructor() {
                 this.currentDate = new Date();
-                this.currentView = 'day'; // 'day', 'week', 'month'
+                this.currentView = 'day'; 
                 this.container = document.getElementById('appContainer');
                 this.viewTitle = document.getElementById('viewTitle');
                 
+                // Init Theme
+                ThemeManager.init();
+
                 // Initial render
                 this.render();
             }
 
             changeView(viewName) {
                 this.currentView = viewName;
-                
-                // Update footer active state
                 document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
                 const btnMap = { 'day': 'btnDay', 'week': 'btnWeek', 'month': 'btnMonth' };
                 document.getElementById(btnMap[viewName]).classList.add('active');
-
                 this.render();
             }
 
-            // --- VIEW ROUTER ---
             render() {
                 this.container.innerHTML = '';
-                
                 switch(this.currentView) {
                     case 'day':
                         this.viewTitle.textContent = "Widok Dnia";
@@ -590,15 +657,11 @@
                 }
             }
 
-            // --- DAY VIEW LOGIC ---
             renderDayView() {
                 const dateKey = Utils.formatDateKey(this.currentDate);
                 let items = Storage.get(dateKey);
-
-                // SORT LOGIC: Red (false) on top, Green (true) on bottom
                 items.sort((a, b) => a.done - b.done);
 
-                // Header Navigation
                 const nav = document.createElement('div');
                 nav.className = 'date-nav';
                 nav.innerHTML = `
@@ -607,17 +670,13 @@
                     <button class="date-btn" id="nextDay">[&gt;]</button>
                 `;
                 
-                // Buttons handling
                 nav.querySelector('#prevDay').onclick = () => this.shiftDate(-1);
                 nav.querySelector('#nextDay').onclick = () => this.shiftDate(1);
-                
-                // Today Button (Clicking date resets to today)
                 nav.querySelector('.current-date-label').onclick = () => {
                     this.currentDate = new Date();
                     this.render();
                 };
 
-                // Input Area
                 const inputGroup = document.createElement('div');
                 inputGroup.className = 'input-group';
                 inputGroup.innerHTML = `
@@ -625,17 +684,15 @@
                     <button id="addBtn">➕</button>
                 `;
 
-                // List Area
                 const list = document.createElement('ul');
                 list.className = 'shopping-list';
 
                 if (items.length === 0) {
                     list.innerHTML = '<div class="empty-state">Brak zakupów na ten dzień.<br>Dodaj coś! 📝</div>';
                 } else {
-                    items.forEach((item, index) => {
+                    items.forEach((item) => {
                         const li = document.createElement('li');
                         li.className = `item-row ${item.done ? 'status-done' : 'status-todo'}`;
-                        
                         li.innerHTML = `
                             <div class="item-left" onclick="app.toggleItem('${dateKey}', ${item.id})">
                                 <span class="checkbox"></span>
@@ -644,7 +701,6 @@
                             <button class="delete-btn" onclick="app.deleteItem('${dateKey}', ${item.id})">🗑️</button>
                         `;
                         
-                        // Actions
                         const textSpan = li.querySelector('.item-text');
                         textSpan.onclick = (e) => {
                             e.stopPropagation();
@@ -653,7 +709,6 @@
                                 app.editItem(dateKey, item.id, newText.trim());
                             }
                         };
-
                         list.appendChild(li);
                     });
                 }
@@ -662,7 +717,6 @@
                 this.container.appendChild(inputGroup);
                 this.container.appendChild(list);
 
-                // Bind Input Events
                 const input = document.getElementById('itemInput');
                 const addBtn = document.getElementById('addBtn');
 
@@ -678,11 +732,9 @@
                 });
             }
 
-            // --- WEEK VIEW LOGIC ---
             renderWeekView() {
                 const grid = document.createElement('div');
                 grid.className = 'grid-container week-grid';
-
                 const curr = new Date(this.currentDate);
                 const day = curr.getDay();
                 const diff = curr.getDate() - day + (day == 0 ? -6 : 1); 
@@ -703,15 +755,8 @@
 
                     let statusClass = '';
                     let icon = '';
-
-                    if (status === 'red') {
-                        statusClass = 'status-red';
-                        icon = '🛒';
-                    }
-                    if (status === 'green') {
-                        statusClass = 'status-green';
-                        icon = '✅';
-                    }
+                    if (status === 'red') { statusClass = 'status-red'; icon = '🛒'; }
+                    if (status === 'green') { statusClass = 'status-green'; icon = '✅'; }
 
                     tile.innerHTML = `
                         <div class="week-row-layout">
@@ -724,11 +769,9 @@
                     `;
                     grid.appendChild(tile);
                 }
-                
                 this.container.appendChild(grid);
             }
 
-            // --- MONTH VIEW LOGIC ---
             renderMonthView() {
                 const year = this.currentDate.getFullYear();
                 const month = this.currentDate.getMonth();
@@ -754,7 +797,6 @@
 
                 const firstDay = new Date(year, month, 1);
                 const lastDay = new Date(year, month + 1, 0);
-                
                 let startDayIndex = firstDay.getDay(); 
                 if (startDayIndex === 0) startDayIndex = 7; 
                 
@@ -771,43 +813,26 @@
                     
                     const cell = document.createElement('div');
                     cell.className = 'calendar-cell';
-                    
                     if (dateStr === todayStr) cell.classList.add('today');
                     
                     let icon = '';
-
-                    if (status === 'red') {
-                        cell.classList.add('status-red');
-                        icon = '🛒';
-                    }
-                    if (status === 'green') {
-                        cell.classList.add('status-green');
-                        icon = '✅';
-                    }
+                    if (status === 'red') { cell.classList.add('status-red'); icon = '🛒'; }
+                    if (status === 'green') { cell.classList.add('status-green'); icon = '✅'; }
                     
                     cell.onclick = () => this.goToDate(currentDayDate);
-                    
-                    // Add icon span if icon exists
                     const iconHtml = icon ? `<span class="month-status-icon">${icon}</span>` : '';
 
                     cell.innerHTML = `<span>${i}</span>${iconHtml}`;
                     grid.appendChild(cell);
                 }
-
                 this.container.appendChild(grid);
             }
 
-            // --- ACTIONS & HELPERS ---
-
             addItem(dateKey, text) {
                 const items = Storage.get(dateKey);
-                items.push({
-                    id: Date.now(),
-                    text: text,
-                    done: false
-                });
+                items.push({ id: Date.now(), text: text, done: false });
                 Storage.set(dateKey, items);
-                this.render(); // Re-render current view
+                this.render();
             }
 
             toggleItem(dateKey, id) {
@@ -854,9 +879,7 @@
             }
         }
 
-        // Initialize App
         const app = new GreenGoApp();
-
     </script>
 </body>
 </html>
