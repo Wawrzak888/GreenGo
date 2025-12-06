@@ -526,6 +526,10 @@
                 <span class="nav-icon">📆</span>
                 <span>Miesiąc</span>
             </button>
+            <button class="nav-btn" onclick="app.shareApp()" id="btnShare">
+                <span class="nav-icon">📤</span>
+                <span>Udostępnij</span>
+            </button>
         </div>
         <div class="footer-credits">
             Aplikacja autorstwa Tomasza Wawrzaka, powstała z konieczności i ciągłego zapominania 😉
@@ -876,6 +880,19 @@
             goToDate(date) {
                 this.currentDate = date;
                 this.changeView('day');
+            }
+
+            shareApp() {
+                const url = window.location.href;
+                if (navigator.share) {
+                    navigator.share({ title: document.title, text: 'Udostępnij aplikację GreenGo', url }).catch(() => {});
+                    return;
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(() => { alert('Link skopiowany do schowka'); }).catch(() => { prompt('Skopiuj link', url); });
+                    return;
+                }
+                prompt('Skopiuj link', url);
             }
         }
 
