@@ -345,6 +345,17 @@
             opacity: 1;
         }
 
+        .move-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            padding: 5px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .move-btn:hover { opacity: 1; }
+
         /* --- STATUS STYLES --- */
         .status-todo .item-text {
             color: var(--red); /* Red overrides text-main for emphasis */
@@ -493,6 +504,35 @@
             margin-bottom: 15px;
             color: var(--text-main);
         }
+
+        .month-moved-icon {
+            position: absolute;
+            bottom: 3px;
+            left: 3px;
+            font-size: 1.2rem;
+            line-height: 1;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-card {
+            background: var(--bg-card);
+            color: var(--text-main);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 16px;
+            width: 90%;
+            max-width: 420px;
+        }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
     </style>
 </head>
 <body>
@@ -608,6 +648,10 @@
                 const hasPending = data.some(item => !item.done);
                 if (hasPending) return 'red';
                 return 'green'; 
+            },
+            hasMovedIn: (dateStr) => {
+                const data = Storage.get(dateStr);
+                return data.some(item => !!item.movedFrom);
             }
         };
 
@@ -702,6 +746,7 @@
                                 <span class="checkbox"></span>
                                 <span class="item-text">${item.text}</span>
                             </div>
+                            <button class="move-btn" onclick="app.openMoveDialog('${dateKey}', ${item.id})">↪️</button>
                             <button class="delete-btn" onclick="app.deleteItem('${dateKey}', ${item.id})">🗑️</button>
                         `;
                         
@@ -753,25 +798,28 @@
                     const dayName = loopDate.toLocaleDateString('pl-PL', { weekday: 'long' });
                     const dateNum = loopDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'numeric' });
 
-                    const tile = document.createElement('div');
-                    tile.className = 'tile';
-                    tile.onclick = () => this.goToDate(loopDate);
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.onclick = () => this.goToDate(loopDate);
 
-                    let statusClass = '';
-                    let icon = '';
-                    if (status === 'red') { statusClass = 'status-red'; icon = '🛒'; }
-                    if (status === 'green') { statusClass = 'status-green'; icon = '✅'; }
+                let statusClass = '';
+                let icon = '';
+                if (status === 'red') { statusClass = 'status-red'; icon = '🛒'; }
+                if (status === 'green') { statusClass = 'status-green'; icon = '✅'; }
+                const movedIn = Utils.hasMovedIn(dateStr);
+                const movedIcon = movedIn ? '<span style="font-size: 1.2rem">↪️</span>' : '';
 
-                    tile.innerHTML = `
-                        <div class="week-row-layout">
-                            <span class="week-day-name">${dayName}</span>
-                            <div class="week-status-wrapper">
-                                ${icon ? `<span style="font-size: 1.2rem">${icon}</span>` : ''} 
-                                <span class="week-date-num ${statusClass}">${dateNum}</span>
-                            </div>
+                tile.innerHTML = `
+                    <div class="week-row-layout">
+                        <span class="week-day-name">${dayName}</span>
+                        <div class="week-status-wrapper">
+                            ${icon ? `<span style="font-size: 1.2rem">${icon}</span>` : ''}
+                            ${movedIcon}
+                            <span class="week-date-num ${statusClass}">${dateNum}</span>
                         </div>
-                    `;
-                    grid.appendChild(tile);
+                    </div>
+                `;
+                grid.appendChild(tile);
                 }
                 this.container.appendChild(grid);
             }
@@ -814,6 +862,7 @@
                     const currentDayDate = new Date(year, month, i);
                     const dateStr = Utils.formatDateKey(currentDayDate);
                     const status = Utils.getDayStatus(dateStr);
+                    const movedIn = Utils.hasMovedIn(dateStr);
                     
                     const cell = document.createElement('div');
                     cell.className = 'calendar-cell';
@@ -825,8 +874,9 @@
                     
                     cell.onclick = () => this.goToDate(currentDayDate);
                     const iconHtml = icon ? `<span class="month-status-icon">${icon}</span>` : '';
+                    const movedHtml = movedIn ? `<span class="month-moved-icon">↪️</span>` : '';
 
-                    cell.innerHTML = `<span>${i}</span>${iconHtml}`;
+                    cell.innerHTML = `<span>${i}</span>${iconHtml}${movedHtml}`;
                     grid.appendChild(cell);
                 }
                 this.container.appendChild(grid);
@@ -865,6 +915,50 @@
                     Storage.set(dateKey, items);
                     this.render();
                 }
+            }
+
+            openMoveDialog(sourceDateKey, itemId) {
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop';
+                const card = document.createElement('div');
+                card.className = 'modal-card';
+                card.innerHTML = `
+                    <div style="font-weight:600; margin-bottom:8px;">Przenieś na inny dzień</div>
+                    <input type="date" id="moveDateInput" style="width:100%; padding:10px; border-radius: var(--radius); border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main);">
+                    <div class="modal-actions">
+                        <button id="cancelMove" class="date-btn">Anuluj</button>
+                        <button id="confirmMove" class="date-btn">Przenieś</button>
+                    </div>
+                `;
+                backdrop.appendChild(card);
+                document.body.appendChild(backdrop);
+
+                const input = card.querySelector('#moveDateInput');
+                input.value = Utils.formatDateKey(this.currentDate);
+
+                const cleanup = () => backdrop.remove();
+                card.querySelector('#cancelMove').onclick = cleanup;
+                card.querySelector('#confirmMove').onclick = () => {
+                    const target = input.value;
+                    if (target && target !== sourceDateKey) {
+                        this.moveItem(sourceDateKey, itemId, target);
+                    }
+                    cleanup();
+                };
+            }
+
+            moveItem(sourceDateKey, itemId, targetDateKey) {
+                let sourceItems = Storage.get(sourceDateKey);
+                const item = sourceItems.find(i => i.id === itemId);
+                if (!item) return;
+                sourceItems = sourceItems.filter(i => i.id !== itemId);
+                Storage.set(sourceDateKey, sourceItems);
+
+                const targetItems = Storage.get(targetDateKey);
+                const movedItem = { ...item, movedFrom: sourceDateKey };
+                targetItems.push(movedItem);
+                Storage.set(targetDateKey, targetItems);
+                this.render();
             }
 
             shiftDate(days) {
