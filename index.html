@@ -741,13 +741,16 @@
                     items.forEach((item) => {
                         const li = document.createElement('li');
                         li.className = `item-row ${item.done ? 'status-done' : 'status-todo'}`;
+                        const actionsHtml = item.done ? '' : `
+                            <button class="move-btn" onclick="app.openMoveDialog('${dateKey}', ${item.id})">↪️</button>
+                            <button class="delete-btn" onclick="app.deleteItem('${dateKey}', ${item.id})">🗑️</button>
+                        `;
                         li.innerHTML = `
                             <div class="item-left" onclick="app.toggleItem('${dateKey}', ${item.id})">
                                 <span class="checkbox"></span>
                                 <span class="item-text">${item.text}</span>
                             </div>
-                            <button class="move-btn" onclick="app.openMoveDialog('${dateKey}', ${item.id})">↪️</button>
-                            <button class="delete-btn" onclick="app.deleteItem('${dateKey}', ${item.id})">🗑️</button>
+                            ${actionsHtml}
                         `;
                         
                         const textSpan = li.querySelector('.item-text');
